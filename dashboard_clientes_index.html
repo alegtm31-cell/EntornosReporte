@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Análisis de Mercado AL MAYOR</title>
+  <meta name="description" content="Dashboard interactivo de análisis de clientes al mayor: estados activos, inactividad y participación de mercado." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">📊</div>
+      <div class="logo-text">
+        <span class="logo-title">MarketPulse</span>
+        <span class="logo-sub">AL MAYOR</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-section="overview" id="nav-overview">
+        <span class="nav-icon">⚡</span><span>Resumen</span>
+      </a>
+      <a href="#" class="nav-item" data-section="estados" id="nav-estados">
+        <span class="nav-icon">🗺️</span><span>Por Estado</span>
+      </a>
+      <a href="#" class="nav-item" data-section="inactivos" id="nav-inactivos">
+        <span class="nav-icon">⏳</span><span>Inactivos</span>
+      </a>
+      <a href="#" class="nav-item" data-section="tabla" id="nav-tabla">
+        <span class="nav-icon">📋</span><span>Tabla Completa</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-year">A�o en curso</div>
+      <div class="sidebar-date" id="sidebar-date"></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+        <div class="topbar-title" id="section-title">Resumen General</div>
+      </div>
+      <div class="topbar-right">
+        <div class="filter-group">
+          <select id="filter-vendedor" class="filter-select">
+            <option value="">Todos los vendedores</option>
+          </select>
+          <select id="filter-estado" class="filter-select">
+            <option value="">Todos los estados</option>
+          </select>
+          <select id="filter-inactividad" class="filter-select">
+            <option value="">Todos los niveles</option>
+            <option value="40-59 d�as (pr�ximo a 2 meses)">? 40-59 d�as</option>
+            <option value="2 meses sin comprar">?? 2 meses</option>
+            <option value="3 meses sin comprar">?? 3 meses</option>
+            <option value="4-5 meses sin comprar">?? 4-5 meses</option>
+            <option value="+6 meses sin comprar">? +6 meses</option>
+          </select>
+        </div>
+        <label class="upload-btn" for="csv-input" id="upload-label">
+          <span>📁 Cargar CSV</span>
+          <input type="file" id="csv-input" accept=".csv" hidden />
+        </label>
+      </div>
+    </header>
+
+    <!-- UPLOAD PROMPT -->
+    <div class="upload-prompt" id="upload-prompt">
+      <div class="upload-card">
+        <div class="upload-icon">📂</div>
+        <h2>Carga tu archivo CSV</h2>
+        <p>Arrastra el archivo aquí o haz clic en el botón de arriba.<br/>El archivo debe contener las columnas del query de clientes AL MAYOR.</p>
+        <label class="upload-btn-big" for="csv-input">Seleccionar Archivo CSV</label>
+        <div class="upload-cols">
+          <span>Columnas esperadas:</span>
+          <code>RIF_Cedula · Razon_Social · Estado · Ultimo_Vendedor · Ultima_Compra · Dias_Sin_Comprar · Nivel_Inactividad · Total_Unidades_A�o · Total_Facturado_Bs_A�o · Total_Facturas_A�o</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD CONTENT -->
+    <div class="dashboard-content" id="dashboard-content" style="display:none;">
+
+      <!-- SECTION: OVERVIEW -->
+      <section class="section" id="section-overview">
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-cyan">
+            <div class="kpi-icon">👥</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-total-clientes">—</div>
+              <div class="kpi-label">Total Clientes</div>
+            </div>
+            <div class="kpi-glow"></div>
+          </div>
+          <div class="kpi-card kpi-purple">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-total-bs">—</div>
+              <div class="kpi-label">Total Facturado Bs</div>
+            </div>
+            <div class="kpi-glow"></div>
+          </div>
+          <div class="kpi-card kpi-green">
+            <div class="kpi-icon">📦</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-total-unidades">—</div>
+              <div class="kpi-label">Unidades Compradas</div>
+            </div>
+            <div class="kpi-glow"></div>
+          </div>
+          <div class="kpi-card kpi-orange">
+            <div class="kpi-icon">⏳</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-inactivos">—</div>
+              <div class="kpi-label">Clientes Inactivos (+60 días)</div>
+            </div>
+            <div class="kpi-glow"></div>
+          </div>
+          <div class="kpi-card kpi-red">
+            <div class="kpi-icon">🚨</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-criticos">—</div>
+              <div class="kpi-label">Críticos (+6 meses)</div>
+            </div>
+            <div class="kpi-glow"></div>
+          </div>
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-icon">📄</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-facturas">—</div>
+              <div class="kpi-label">Total Facturas</div>
+            </div>
+            <div class="kpi-glow"></div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-card chart-wide">
+            <div class="chart-header">
+              <span class="chart-title">🗺️ Facturación por Estado — Top 10</span>
+              <span class="chart-badge">Bs acumulado</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-estados-bar"></canvas>
+            </div>
+          </div>
+          <div class="chart-card chart-narrow">
+            <div class="chart-header">
+              <span class="chart-title">🍩 Participación por Estado</span>
+              <span class="chart-badge">% del total</span>
+            </div>
+            <div class="chart-wrap chart-donut-wrap">
+              <canvas id="chart-estados-donut"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: ESTADOS -->
+      <section class="section hidden" id="section-estados">
+        <div class="charts-row">
+          <div class="chart-card" style="flex:1">
+            <div class="chart-header">
+              <span class="chart-title">📊 Todos los Estados — Facturación Bs</span>
+            </div>
+            <div class="chart-wrap chart-tall">
+              <canvas id="chart-all-estados"></canvas>
+            </div>
+          </div>
+          <div class="chart-card" style="flex:1">
+            <div class="chart-header">
+              <span class="chart-title">⏳ Estados con Mayor Inactividad Promedio</span>
+              <span class="chart-badge">Días prom. sin comprar</span>
+            </div>
+            <div class="chart-wrap chart-tall">
+              <canvas id="chart-inactivity-estados"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: INACTIVOS -->
+      <section class="section hidden" id="section-inactivos">
+        <div class="inactivos-kpis">
+          <div class="mini-kpi mk-cyan"><span class="mk-val" id="mk-40m">�</span><span class="mk-lbl">? 40-59 d�as</span></div>
+          <div class="mini-kpi mk-yellow"><span class="mk-val" id="mk-2m">�</span><span class="mk-lbl">?? 2 meses</span></div>
+          <div class="mini-kpi mk-orange"><span class="mk-val" id="mk-3m">�</span><span class="mk-lbl">?? 3 meses</span></div>
+          <div class="mini-kpi mk-red"><span class="mk-val" id="mk-45m">�</span><span class="mk-lbl">?? 4-5 meses</span></div>
+          <div class="mini-kpi mk-critical"><span class="mk-val" id="mk-6m">�</span><span class="mk-lbl">? +6 meses</span></div>
+        </div>
+        <div class="charts-row">
+          <div class="chart-card" style="flex:0 0 340px">
+            <div class="chart-header">
+              <span class="chart-title">🚨 Distribución de Inactividad</span>
+            </div>
+            <div class="chart-wrap chart-donut-wrap">
+              <canvas id="chart-inactividad-dist"></canvas>
+            </div>
+          </div>
+          <div class="chart-card" style="flex:1">
+            <div class="chart-header">
+              <span class="chart-title">📋 Clientes más críticos (mayor inactividad)</span>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="table-criticos">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Estado</th>
+                    <th>Vendedor</th>
+                    <th>Última Compra</th>
+                    <th>Días Sin Comprar</th>
+                    <th>Nivel</th>
+                    <th>Total Bs A�o</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-criticos"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: TABLA COMPLETA -->
+      <section class="section hidden" id="section-tabla">
+        <div class="tabla-toolbar">
+          <input type="text" id="search-input" class="search-input" placeholder="🔍 Buscar por cliente, RIF, estado..." />
+          <button class="export-btn" id="export-btn">⬇️ Exportar CSV</button>
+          <div class="tabla-count">Mostrando <span id="table-count">0</span> registros</div>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table" id="main-table">
+            <thead>
+              <tr>
+                <th>RIF / Cédula</th>
+                <th>Razón Social</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+                <th>Vendedor</th>
+                <th>Última Compra</th>
+                <th>Días Sin Comprar</th>
+                <th>Nivel Inactividad</th>
+                <th>Unidades A�o</th>
+                <th>Facturas A�o</th>
+                <th>Total Bs A�o</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-main"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
