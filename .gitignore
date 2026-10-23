@@ -1,0 +1,31 @@
+# Entornos virtuales de Python
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Credenciales y archivos confidenciales
+accounts.txt
+*.env
+.env.*
+secrets/
+
+# Archivos de datos pesados y datos de clientes
+*.pbix
+*.parquet
+*.xlsx
+*.xls
+*.csv
+~$*.xlsx
+~$*.docx
+~$*
+reportes_almayor/
+
+# Archivos de logs y cache de herramientas
+*.log
+.kilo/
+.DS_Store
+Thumbs.db

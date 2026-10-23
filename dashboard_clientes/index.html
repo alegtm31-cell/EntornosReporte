@@ -1,18 +1,27 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard — Análisis de Mercado AL MAYOR</title>
-  <meta name="description" content="Dashboard interactivo de análisis de clientes al mayor: estados activos, inactividad y participación de mercado." />
+  <meta name="description"
+    content="Dashboard interactivo de análisis de clientes al mayor: estados activos, inactividad y participación de mercado." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+
+  <!-- Librerías de gráficos, parsers de CSV y Excel -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
   <!-- SIDEBAR -->
@@ -63,15 +72,16 @@
           </select>
           <select id="filter-inactividad" class="filter-select">
             <option value="">Todos los niveles</option>
-            <option value="2 meses sin comprar">🟡 2 meses</option>
-            <option value="3 meses sin comprar">🟠 3 meses</option>
-            <option value="4-5 meses sin comprar">🔴 4-5 meses</option>
+            <option value="40-59 días (próximo a 2 meses)">⚠️ 40-59 días</option>
+            <option value="2 meses sin comprar">🟧 2 meses</option>
+            <option value="3 meses sin comprar">🟧 3 meses</option>
+            <option value="4-5 meses sin comprar">🟥 4-5 meses</option>
             <option value="+6 meses sin comprar">🚨 +6 meses</option>
           </select>
         </div>
         <label class="upload-btn" for="csv-input" id="upload-label">
-          <span>📁 Cargar CSV</span>
-          <input type="file" id="csv-input" accept=".csv" hidden />
+          <span>📁 Cargar Archivo (Excel/CSV)</span>
+          <input type="file" id="csv-input" accept=".csv, .xlsx, .xls" hidden />
         </label>
       </div>
     </header>
@@ -80,12 +90,13 @@
     <div class="upload-prompt" id="upload-prompt">
       <div class="upload-card">
         <div class="upload-icon">📂</div>
-        <h2>Carga tu archivo CSV</h2>
-        <p>Arrastra el archivo aquí o haz clic en el botón de arriba.<br/>El archivo debe contener las columnas del query de clientes AL MAYOR.</p>
-        <label class="upload-btn-big" for="csv-input">Seleccionar Archivo CSV</label>
+        <h2>Carga tu archivo Excel o CSV</h2>
+        <p>Arrastra el archivo aquí o haz clic en el botón de abajo.<br />Soporta directamente archivos <strong>.xlsx,
+            .xls y .csv</strong>.</p>
+        <label class="upload-btn-big" for="csv-input">Seleccionar Archivo</label>
         <div class="upload-cols">
           <span>Columnas esperadas:</span>
-          <code>RIF_Cedula · Razon_Social · Estado · Ultimo_Vendedor · Ultima_Compra · Dias_Sin_Comprar · Nivel_Inactividad · Total_Unidades_Año · Total_Facturado_Bs_Año · Total_Facturas_Año</code>
+          <code>RIF / Código · Nombre del Cliente · Provincia / Estado · Persona que le Vendió (Última Venta) · Total Unidades · Monto Total USD ($) · Monto Total Bs. · Total Facturas · Última Compra</code>
         </div>
       </div>
     </div>
@@ -104,6 +115,14 @@
             </div>
             <div class="kpi-glow"></div>
           </div>
+          <div class="kpi-card kpi-green">
+            <div class="kpi-icon">💵</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpi-total-usd">—</div>
+              <div class="kpi-label">Total Facturado USD</div>
+            </div>
+            <div class="kpi-glow"></div>
+          </div>
           <div class="kpi-card kpi-purple">
             <div class="kpi-icon">💰</div>
             <div class="kpi-data">
@@ -112,7 +131,7 @@
             </div>
             <div class="kpi-glow"></div>
           </div>
-          <div class="kpi-card kpi-green">
+          <div class="kpi-card kpi-blue">
             <div class="kpi-icon">📦</div>
             <div class="kpi-data">
               <div class="kpi-value" id="kpi-total-unidades">—</div>
@@ -136,21 +155,13 @@
             </div>
             <div class="kpi-glow"></div>
           </div>
-          <div class="kpi-card kpi-blue">
-            <div class="kpi-icon">📄</div>
-            <div class="kpi-data">
-              <div class="kpi-value" id="kpi-facturas">—</div>
-              <div class="kpi-label">Total Facturas</div>
-            </div>
-            <div class="kpi-glow"></div>
-          </div>
         </div>
 
         <div class="charts-row">
           <div class="chart-card chart-wide">
             <div class="chart-header">
-              <span class="chart-title">🗺️ Facturación por Estado — Top 10</span>
-              <span class="chart-badge">Bs acumulado</span>
+              <span class="chart-title">🗺️ Facturación por Estado — Top 10 (USD)</span>
+              <span class="chart-badge">$ Acumulado</span>
             </div>
             <div class="chart-wrap">
               <canvas id="chart-estados-bar"></canvas>
@@ -173,7 +184,7 @@
         <div class="charts-row">
           <div class="chart-card" style="flex:1">
             <div class="chart-header">
-              <span class="chart-title">📊 Todos los Estados — Facturación Bs</span>
+              <span class="chart-title">📊 Todos los Estados — Facturación USD ($)</span>
             </div>
             <div class="chart-wrap chart-tall">
               <canvas id="chart-all-estados"></canvas>
@@ -194,10 +205,16 @@
       <!-- SECTION: INACTIVOS -->
       <section class="section hidden" id="section-inactivos">
         <div class="inactivos-kpis">
-          <div class="mini-kpi mk-yellow"><span class="mk-val" id="mk-2m">—</span><span class="mk-lbl">🟡 2 meses</span></div>
-          <div class="mini-kpi mk-orange"><span class="mk-val" id="mk-3m">—</span><span class="mk-lbl">🟠 3 meses</span></div>
-          <div class="mini-kpi mk-red"><span class="mk-val" id="mk-45m">—</span><span class="mk-lbl">🔴 4-5 meses</span></div>
-          <div class="mini-kpi mk-critical"><span class="mk-val" id="mk-6m">—</span><span class="mk-lbl">🚨 +6 meses</span></div>
+          <div class="mini-kpi mk-cyan"><span class="mk-val" id="mk-40m">—</span><span class="mk-lbl">⚠️ 40-59
+              días</span></div>
+          <div class="mini-kpi mk-yellow"><span class="mk-val" id="mk-2m">—</span><span class="mk-lbl">🟧 2 meses</span>
+          </div>
+          <div class="mini-kpi mk-orange"><span class="mk-val" id="mk-3m">—</span><span class="mk-lbl">🟧 3 meses</span>
+          </div>
+          <div class="mini-kpi mk-red"><span class="mk-val" id="mk-45m">—</span><span class="mk-lbl">🟥 4-5 meses</span>
+          </div>
+          <div class="mini-kpi mk-critical"><span class="mk-val" id="mk-6m">—</span><span class="mk-lbl">🚨 +6
+              meses</span></div>
         </div>
         <div class="charts-row">
           <div class="chart-card" style="flex:0 0 340px">
@@ -222,7 +239,7 @@
                     <th>Última Compra</th>
                     <th>Días Sin Comprar</th>
                     <th>Nivel</th>
-                    <th>Total Bs Año</th>
+                    <th>Total USD ($)</th>
                   </tr>
                 </thead>
                 <tbody id="tbody-criticos"></tbody>
@@ -235,7 +252,8 @@
       <!-- SECTION: TABLA COMPLETA -->
       <section class="section hidden" id="section-tabla">
         <div class="tabla-toolbar">
-          <input type="text" id="search-input" class="search-input" placeholder="🔍 Buscar por cliente, RIF, estado..." />
+          <input type="text" id="search-input" class="search-input"
+            placeholder="🔍 Buscar por cliente, RIF, estado..." />
           <button class="export-btn" id="export-btn">⬇️ Exportar CSV</button>
           <div class="tabla-count">Mostrando <span id="table-count">0</span> registros</div>
         </div>
@@ -243,17 +261,18 @@
           <table class="data-table" id="main-table">
             <thead>
               <tr>
-                <th>RIF / Cédula</th>
-                <th>Razón Social</th>
+                <th>RIF / Código</th>
+                <th>Nombre del Cliente</th>
                 <th>Teléfono</th>
                 <th>Estado</th>
                 <th>Vendedor</th>
                 <th>Última Compra</th>
                 <th>Días Sin Comprar</th>
                 <th>Nivel Inactividad</th>
-                <th>Unidades Año</th>
-                <th>Facturas Año</th>
-                <th>Total Bs Año</th>
+                <th>Unidades</th>
+                <th>Facturas</th>
+                <th>Total USD ($)</th>
+                <th>Total Bs.</th>
               </tr>
             </thead>
             <tbody id="tbody-main"></tbody>
@@ -268,4 +287,5 @@
   <div class="toast" id="toast"></div>
   <script src="app.js"></script>
 </body>
+
 </html>
